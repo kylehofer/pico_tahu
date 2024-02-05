@@ -166,6 +166,18 @@ extern "C"
                           const void *value,
                           size_t size);
 
+    /**
+     * Add a PropertySet to an existing PropertySet
+     *
+     * (No pointers passed into this function are retained by the target structure)
+     *
+     * @param propertyset
+     *               Pointer to destination PropertySet that property will be added to
+     * @param propertyset
+     *               Pointer to source PropertySet that property will be added from
+     *
+     * @return Returns >= 0 on success, or negative on failure
+     */
     int add_propertyset_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *base,
                                org_eclipse_tahu_protobuf_Payload_PropertySet *propertyset);
 
