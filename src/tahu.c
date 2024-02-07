@@ -157,6 +157,7 @@ int add_propertyset_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *base,
 
     for (size_t base_index = old_count; base_index < new_count; base_index++)
     {
+
         base->keys[base_index] = strdup(propertyset->keys[propertyset_index]);
         if (base->keys[base_index] == NULL)
         {
@@ -184,6 +185,7 @@ int add_propertyset_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *base,
                 &propertyset->values[propertyset_index].value,
                 size_of_value);
         }
+        propertyset_index++;
     }
 
     return 0;
