@@ -113,10 +113,81 @@ int set_propertyvalue(org_eclipse_tahu_protobuf_Payload_PropertyValue *propertyv
         propertyvalue->which_value = org_eclipse_tahu_protobuf_Payload_PropertyValue_string_value_tag;
         propertyvalue->value.string_value = strndup(value, size);
         break;
+    case PROPERTY_DATA_TYPE_PROPERTYSET:
+        propertyvalue->which_value = org_eclipse_tahu_protobuf_Payload_PropertyValue_propertyset_value_tag;
+        add_propertyset_to_set(
+            &propertyvalue->value.propertyset_value,
+            (org_eclipse_tahu_protobuf_Payload_PropertySet *)value);
+        break;
     default:
         fprintf(stderr, "Invalid datatype(%u) in set_propertyvalue\n", datatype);
         return -1;
     }
+    return 0;
+}
+
+int add_propertyset_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *base,
+                           org_eclipse_tahu_protobuf_Payload_PropertySet *propertyset)
+{
+    DEBUG_PRINT("Add propertyset to set...\n");
+    if (base->keys_count != base->values_count ||
+        propertyset->keys_count != propertyset->values_count)
+    {
+        fprintf(stderr, "Mismatched key/value counts in add_propertyset_to_set\n");
+        return -1;
+    }
+    const int old_count = base->keys_count;
+    const int new_count = (old_count + propertyset->keys_count);
+    const size_t key_allocation_size = sizeof(char *) * new_count;
+    const size_t value_allocation_size = sizeof(org_eclipse_tahu_protobuf_Payload_PropertyValue) * new_count;
+    void *key_allocation_result = realloc(base->keys, key_allocation_size);
+    void *value_allocation_result = realloc(base->values, value_allocation_size);
+    // DEBUG_PRINT("key=%p value=%p\n", key_allocation_result, value_allocation_result);
+    if ((key_allocation_result == NULL) || (value_allocation_result == NULL))
+    {
+        fprintf(stderr, "realloc failed in add_propertyset_to_set\n");
+        return -1;
+    }
+    base->keys = key_allocation_result;
+    base->keys_count = new_count;
+    base->values = value_allocation_result;
+    base->values_count = new_count;
+
+    size_t propertyset_index = 0;
+
+    for (size_t base_index = old_count; base_index < new_count; base_index++)
+    {
+
+        base->keys[base_index] = strdup(propertyset->keys[propertyset_index]);
+        if (base->keys[base_index] == NULL)
+        {
+            fprintf(stderr, "strdup failed in add_propertyset_to_set\n");
+            return -1;
+        }
+
+        memset(&base->values[base_index], 0, sizeof(org_eclipse_tahu_protobuf_Payload_PropertyValue));
+        base->values[base_index].has_type = true;
+        base->values[base_index].type = propertyset->values[propertyset_index].type;
+        if (propertyset->values[propertyset_index].is_null)
+        {
+            base->values[base_index].has_is_null = true;
+            base->values[base_index].is_null = true;
+        }
+        else
+        {
+            size_t size_of_value = (propertyset->values[propertyset_index].type == PROPERTY_DATA_TYPE_STRING ||
+                                    propertyset->values[propertyset_index].type == PROPERTY_DATA_TYPE_TEXT)
+                                       ? strlen(propertyset->values[propertyset_index].value.string_value)
+                                       : 0;
+            set_propertyvalue(
+                &base->values[base_index],
+                propertyset->values[propertyset_index].type,
+                &propertyset->values[propertyset_index].value,
+                size_of_value);
+        }
+        propertyset_index++;
+    }
+
     return 0;
 }
 
@@ -141,7 +212,7 @@ int add_property_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *propertys
     // DEBUG_PRINT("key=%p value=%p\n", key_allocation_result, value_allocation_result);
     if ((key_allocation_result == NULL) || (value_allocation_result == NULL))
     {
-        fprintf(stderr, "realloc failed in add_metric_to_payload\n");
+        fprintf(stderr, "realloc failed in add_property_to_set\n");
         return -1;
     }
     propertyset->keys = key_allocation_result;
