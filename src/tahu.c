@@ -18,9 +18,9 @@
 #include <pb_encode.h>
 #include <tahu.h>
 #include <tahu.pb.h>
+#include <time.h>
 
 #if defined(PICO) || defined(PICO_RP2040)
-#include <time.h>
 #include "pico/stdlib.h"
 #endif
 
