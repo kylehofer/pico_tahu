@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.17)
 
 SET(BUILD_TARGET PICO CACHE BOOL "")
+SET(PICO_TAHU_STATIC ON CACHE BOOL "")
+SET(PICO_TAHU_SHARED OFF CACHE BOOL "")
 
 IF(${BUILD_TARGET} STREQUAL "PICO")
     include(pico_sdk_import.cmake)
@@ -24,7 +26,11 @@ ENDIF()
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/*.c")
 
 # Main library compiling
-add_library(pico_tahu STATIC ${SOURCES})
+IF(${PICO_TAHU_STATIC})
+    add_library(pico_tahu STATIC ${SOURCES})
+ELSE()
+    add_library(pico_tahu SHARED ${SOURCES})
+ENDIF()
 
 IF(${BUILD_TARGET} STREQUAL "PICO")
     target_link_libraries(pico_tahu
