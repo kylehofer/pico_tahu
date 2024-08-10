@@ -14,6 +14,7 @@
 #include <tahu.pb.h>
 
 #include <time.h>
+#include <sys/types.h>
 #include <sys/time.h>
 
 #ifdef __MACH__
