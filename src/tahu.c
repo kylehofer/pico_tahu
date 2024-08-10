@@ -432,6 +432,7 @@ int free_payload(org_eclipse_tahu_protobuf_Payload *payload)
 
 uint64_t get_current_timestamp()
 {
+
 #if defined(PICO_RP2040) || defined(PICO)
     return us_to_ms(time_us_64());
 #else
