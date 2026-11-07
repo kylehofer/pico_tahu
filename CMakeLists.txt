@@ -1,26 +1,34 @@
 cmake_minimum_required(VERSION 3.17)
 
-include(GNUInstallDirs)
+# Default before first use; a parent project may already have set it
+SET(BUILD_TARGET PICO CACHE STRING "")
 
-SET(BUILD_TARGET PICO CACHE BOOL "")
-SET(PICO_TAHU_STATIC ON CACHE BOOL "")
-SET(PICO_TAHU_SHARED OFF CACHE BOOL "")
+IF(NOT BUILD_TARGET STREQUAL "ESP")
+    include(GNUInstallDirs)
 
-IF(${BUILD_TARGET} STREQUAL "PICO")
+    SET(PICO_TAHU_STATIC ON CACHE BOOL "")
+    SET(PICO_TAHU_SHARED OFF CACHE BOOL "")
+ELSE()
+    SET(PICO_TAHU_STATIC)
+ENDIF()
+
+IF(BUILD_TARGET STREQUAL "PICO")
     include(pico_sdk_import.cmake)
     set(PICO_BOARD pico_w)
 ELSE()
 ENDIF()
 
-project(pico_tahu C CXX ASM)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 20)
+IF(NOT BUILD_TARGET STREQUAL "ESP")
+    project(pico_tahu C CXX ASM)
+    set(CMAKE_C_STANDARD 11)
+    set(CMAKE_CXX_STANDARD 20)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fPIC")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -fPIC")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+ENDIF()
 
-IF(${BUILD_TARGET} STREQUAL "PICO")
+IF(BUILD_TARGET STREQUAL "PICO")
     pico_sdk_init()
 ENDIF()
 
@@ -28,30 +36,38 @@ ENDIF()
 file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/*.c")
 file(GLOB_RECURSE HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "src/*.h")
 
-# Main library compiling
-IF(${PICO_TAHU_STATIC})
-    add_library(pico_tahu STATIC ${SOURCES})
+IF(NOT BUILD_TARGET STREQUAL "ESP")
+    # Main library compiling
+    IF(${PICO_TAHU_STATIC})
+        add_library(pico_tahu STATIC ${SOURCES})
+    ELSE()
+        add_library(pico_tahu SHARED ${SOURCES})
+    ENDIF()
+
+    IF(BUILD_TARGET STREQUAL "PICO")
+        target_link_libraries(pico_tahu
+            pico_stdlib)
+    ENDIF()
+
+    target_include_directories(pico_tahu PUBLIC "src/")
+
+    IF(BUILD_TARGET STREQUAL "PICO")
+        add_definitions(-DPICO)
+    ENDIF()
+
+    INSTALL(
+        DIRECTORY ${CMAKE_SOURCE_DIR}/src/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILES_MATCHING PATTERN "*.h*")
+
+    INSTALL(TARGETS pico_tahu
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
 ELSE()
-    add_library(pico_tahu SHARED ${SOURCES})
+    idf_component_register(
+        SRCS ${SOURCES}
+        INCLUDE_DIRS src
+    )
 ENDIF()
-
-IF(${BUILD_TARGET} STREQUAL "PICO")
-    target_link_libraries(pico_tahu
-        pico_stdlib)
-ENDIF()
-
-target_include_directories(pico_tahu PUBLIC "src/")
-
-IF(${BUILD_TARGET} STREQUAL "PICO")
-    add_definitions(-DPICO)
-ENDIF()
-
-INSTALL(
-    DIRECTORY ${CMAKE_SOURCE_DIR}/src/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    FILES_MATCHING PATTERN "*.h*")
-
-INSTALL(TARGETS pico_tahu
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

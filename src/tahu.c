@@ -24,6 +24,24 @@
 #include "pico/stdlib.h"
 #endif
 
+/*
+ * Display a full Sparkplug Payload
+ */
+#ifdef DEBUG
+#define PP(...) fprintf(stdout, __VA_ARGS__)
+#define ERROR_PRINT(...) fprintf(stderr, __VA_ARGS__)
+#else
+#define PP(...) \
+    do          \
+    {           \
+    } while (0)
+// Errors are only printed in DEBUG builds; stdio is costly on microcontrollers
+#define ERROR_PRINT(...) \
+    do                   \
+    {                    \
+    } while (0)
+#endif
+
 static uint8_t payload_sequence;
 
 int add_metadata_to_metric(org_eclipse_tahu_protobuf_Payload_Metric *metric,
@@ -46,7 +64,7 @@ int add_metric_to_payload(org_eclipse_tahu_protobuf_Payload *payload,
     // DEBUG_PRINT("realloc_result=%p\n", realloc_result);
     if (realloc_result == NULL)
     {
-        fprintf(stderr, "realloc failed in add_metric_to_payload\n");
+        ERROR_PRINT("realloc failed in add_metric_to_payload\n");
         return -1;
     }
     payload->metrics = realloc_result;
@@ -120,7 +138,7 @@ int set_propertyvalue(org_eclipse_tahu_protobuf_Payload_PropertyValue *propertyv
             (org_eclipse_tahu_protobuf_Payload_PropertySet *)value);
         break;
     default:
-        fprintf(stderr, "Invalid datatype(%u) in set_propertyvalue\n", datatype);
+        ERROR_PRINT("Invalid datatype(%u) in set_propertyvalue\n", datatype);
         return -1;
     }
     return 0;
@@ -133,7 +151,7 @@ int add_propertyset_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *base,
     if (base->keys_count != base->values_count ||
         propertyset->keys_count != propertyset->values_count)
     {
-        fprintf(stderr, "Mismatched key/value counts in add_propertyset_to_set\n");
+        ERROR_PRINT("Mismatched key/value counts in add_propertyset_to_set\n");
         return -1;
     }
     const int old_count = base->keys_count;
@@ -145,7 +163,7 @@ int add_propertyset_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *base,
     // DEBUG_PRINT("key=%p value=%p\n", key_allocation_result, value_allocation_result);
     if ((key_allocation_result == NULL) || (value_allocation_result == NULL))
     {
-        fprintf(stderr, "realloc failed in add_propertyset_to_set\n");
+        ERROR_PRINT("realloc failed in add_propertyset_to_set\n");
         return -1;
     }
     base->keys = key_allocation_result;
@@ -161,7 +179,7 @@ int add_propertyset_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *base,
         base->keys[base_index] = strdup(propertyset->keys[propertyset_index]);
         if (base->keys[base_index] == NULL)
         {
-            fprintf(stderr, "strdup failed in add_propertyset_to_set\n");
+            ERROR_PRINT("strdup failed in add_propertyset_to_set\n");
             return -1;
         }
 
@@ -200,7 +218,7 @@ int add_property_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *propertys
     DEBUG_PRINT("Add property to set...\n");
     if (propertyset->keys_count != propertyset->values_count)
     {
-        fprintf(stderr, "Mismatched key/value counts in add_property_to_set\n");
+        ERROR_PRINT("Mismatched key/value counts in add_property_to_set\n");
         return -1;
     }
     const int old_count = propertyset->keys_count;
@@ -212,7 +230,7 @@ int add_property_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *propertys
     // DEBUG_PRINT("key=%p value=%p\n", key_allocation_result, value_allocation_result);
     if ((key_allocation_result == NULL) || (value_allocation_result == NULL))
     {
-        fprintf(stderr, "realloc failed in add_property_to_set\n");
+        ERROR_PRINT("realloc failed in add_property_to_set\n");
         return -1;
     }
     propertyset->keys = key_allocation_result;
@@ -222,7 +240,7 @@ int add_property_to_set(org_eclipse_tahu_protobuf_Payload_PropertySet *propertys
     propertyset->keys[old_count] = strdup(key);
     if (propertyset->keys[old_count] == NULL)
     {
-        fprintf(stderr, "strdup failed in add_metric_to_payload\n");
+        ERROR_PRINT("strdup failed in add_metric_to_payload\n");
         return -1;
     }
     memset(&propertyset->values[old_count], 0, sizeof(org_eclipse_tahu_protobuf_Payload_PropertyValue));
@@ -317,7 +335,7 @@ int set_metric_value(org_eclipse_tahu_protobuf_Payload_Metric *metric, uint32_t 
     case METRIC_DATA_TYPE_FILE:
     case METRIC_DATA_TYPE_UNKNOWN:
     default:
-        fprintf(stderr, "Unhandled datatype(%u) in set_metric_value\n", datatype);
+        ERROR_PRINT("Unhandled datatype(%u) in set_metric_value\n", datatype);
         return -1;
     }
     return 0;
@@ -341,7 +359,7 @@ int add_simple_metric(org_eclipse_tahu_protobuf_Payload *payload,
         new_metric.name = strdup(name);
         if (new_metric.name == NULL)
         {
-            fprintf(stderr, "strdup name failed in add_simple_metric\n");
+            ERROR_PRINT("strdup name failed in add_simple_metric\n");
             return -1;
         }
     }
@@ -392,7 +410,7 @@ ssize_t encode_payload(uint8_t *out_buffer,
     // Error Check
     if (!encode_result)
     {
-        fprintf(stderr, "Encoding failed: %s\n", PB_GET_ERROR(node_stream));
+        ERROR_PRINT("Encoding failed: %s\n", PB_GET_ERROR(node_stream));
         return -1;
     }
 
@@ -411,7 +429,7 @@ ssize_t decode_payload(org_eclipse_tahu_protobuf_Payload *payload,
 
     if (!decode_result)
     {
-        fprintf(stderr, "Decoding failed: %s\n", PB_GET_ERROR(&node_stream));
+        ERROR_PRINT("Decoding failed: %s\n", PB_GET_ERROR(&node_stream));
         return -1;
     }
 
@@ -491,7 +509,7 @@ int init_dataset(org_eclipse_tahu_protobuf_Payload_DataSet *dataset,
     dataset->columns = malloc(key_size);
     if (dataset->columns == NULL)
     {
-        fprintf(stderr, "malloc(%lu) failure in init_dataset\n", key_size);
+        ERROR_PRINT("malloc(%lu) failure in init_dataset\n", key_size);
         return -1;
     }
     for (int i = 0; i < num_of_columns; i++)
@@ -499,7 +517,7 @@ int init_dataset(org_eclipse_tahu_protobuf_Payload_DataSet *dataset,
         dataset->columns[i] = strdup(column_keys[i]);
         if (dataset->columns[i] == NULL)
         {
-            fprintf(stderr, "strdup failed in init_dataset\n");
+            ERROR_PRINT("strdup failed in init_dataset\n");
             return -1;
         }
     }
@@ -508,7 +526,7 @@ int init_dataset(org_eclipse_tahu_protobuf_Payload_DataSet *dataset,
     dataset->types = malloc(datatypes_size);
     if (dataset->types == NULL)
     {
-        fprintf(stderr, "malloc(%lu) failure in init_dataset\n", datatypes_size);
+        ERROR_PRINT("malloc(%lu) failure in init_dataset\n", datatypes_size);
         return -1;
     }
     memcpy(dataset->types, datatypes, datatypes_size);
@@ -517,7 +535,7 @@ int init_dataset(org_eclipse_tahu_protobuf_Payload_DataSet *dataset,
     dataset->rows = malloc(row_data_size);
     if (dataset->rows == NULL)
     {
-        fprintf(stderr, "malloc(%lu) failure in init_dataset\n", row_data_size);
+        ERROR_PRINT("malloc(%lu) failure in init_dataset\n", row_data_size);
         return -1;
     }
     memcpy(dataset->rows, row_data, row_data_size);
@@ -541,7 +559,7 @@ int init_metric(org_eclipse_tahu_protobuf_Payload_Metric *metric,
         metric->name = strdup(name);
         if (metric->name == NULL)
         {
-            fprintf(stderr, "strdup failed to copy metric name\n");
+            ERROR_PRINT("strdup failed to copy metric name\n");
             return -1;
         }
     }
@@ -580,10 +598,6 @@ int init_metric(org_eclipse_tahu_protobuf_Payload_Metric *metric,
     return 0;
 }
 
-/*
- * Display a full Sparkplug Payload
- */
-#define PP(...) fprintf(stdout, __VA_ARGS__)
 #define EMPTY_PREFIX ""
 void print_metadata(const char *prefix, org_eclipse_tahu_protobuf_Payload_MetaData *metadata);
 void print_propertyvalue(const char *prefix, org_eclipse_tahu_protobuf_Payload_PropertyValue *value);

@@ -1,0 +1,27 @@
+{
+    "name": "pico_tahu",
+    "version": "1.0.0",
+    "description": "Eclipse Tahu Sparkplug B protobuf payloads (nanopb) for microcontrollers",
+    "keywords": "sparkplug, tahu, protobuf, nanopb, mqtt",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/kylehofer/pico_tahu.git"
+    },
+    "build": {
+        "srcFilter": [
+            "+<**/*.c>"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Kyle Hofer",
+            "email": "kylehofer@neurak.com.au",
+            "url": "https://www.neurak.au",
+            "maintainer": true
+        }
+    ],
+    "license": "MIT",
+    "homepage": "https://www.neurak.au",
+    "frameworks": "*",
+    "platforms": "*"
+}
